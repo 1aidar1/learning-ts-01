@@ -8,7 +8,7 @@ export type Coordinates = {
     y: number;
 };
 
-export type CoordinatePair = {
+export type Line = {
     start: Coordinates;
     end: Coordinates;
 }
@@ -20,7 +20,7 @@ export type Polygon = {
 
 
 
-export function pairToCoordinatesArray(a: CoordinatePair) :Coordinates[]{
+export function pairToCoordinatesArray(a: Line) :Coordinates[]{
     let out: Coordinates[] = [];
     out.push(a.start)
     out.push(a.end)
@@ -44,6 +44,23 @@ export function getIntersection(A: Coordinates,B: Coordinates,C: Coordinates,D: 
         }
     }
 
+    return null;
+}
+
+export function getPolyIntersect(A: Coordinates[],B: Coordinates[]) {
+    for (let i = 0; i < A.length; i++) {
+        for (let j = 0; j < B.length; j++) {
+            const touch = getIntersection(
+                A[i],
+                A[(i+1)%A.length],
+                B[j],
+                B[(j+1)%B.length]
+            );
+            if (touch){
+                return touch;
+            }
+        }
+    }
     return null;
 }
 

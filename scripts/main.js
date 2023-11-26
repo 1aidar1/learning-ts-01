@@ -1,4 +1,3 @@
-"use strict";
 define("controller", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
@@ -71,10 +70,10 @@ define("controller", ["require", "exports"], function (require, exports) {
     }
     exports.Controller = Controller;
 });
-define("utils", ["require", "exports"], function (require, exports) {
+define("geometry", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.polyIntersect = exports.getIntersection = exports.pairToCoordinatesArray = exports.lerp = void 0;
+    exports.polyIntersect = exports.getPolyIntersect = exports.getIntersection = exports.pairToCoordinatesArray = exports.lerp = void 0;
     function lerp(A, B, t) {
         return A + (B - A) * t;
     }
@@ -104,6 +103,18 @@ define("utils", ["require", "exports"], function (require, exports) {
         return null;
     }
     exports.getIntersection = getIntersection;
+    function getPolyIntersect(A, B) {
+        for (let i = 0; i < A.length; i++) {
+            for (let j = 0; j < B.length; j++) {
+                const touch = getIntersection(A[i], A[(i + 1) % A.length], B[j], B[(j + 1) % B.length]);
+                if (touch) {
+                    return touch;
+                }
+            }
+        }
+        return null;
+    }
+    exports.getPolyIntersect = getPolyIntersect;
     function polyIntersect(A, B) {
         for (let i = 0; i < A.length; i++) {
             for (let j = 0; j < B.length; j++) {
@@ -117,7 +128,11 @@ define("utils", ["require", "exports"], function (require, exports) {
     }
     exports.polyIntersect = polyIntersect;
 });
-define("sensor", ["require", "exports", "utils"], function (require, exports, utils_1) {
+define("traffic", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+});
+define("sensor", ["require", "exports", "geometry"], function (require, exports, geometry_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.SensorDummy = exports.Sensor = void 0;
@@ -133,14 +148,21 @@ define("sensor", ["require", "exports", "utils"], function (require, exports, ut
             this.castRays(genesis, angle);
             this.reading = [];
             for (let i = 0; i < this.rays.length; i++) {
-                const reading = this.getReading(this.rays[i], roadBorders);
+                const reading = this.getReading(this.rays[i], roadBorders, traffic);
                 this.reading.push(reading);
             }
         }
-        getReading(ray, roadBoarders) {
+        getReading(ray, roadBoarders, traffic) {
             let touches = [];
             for (let i = 0; i < roadBoarders.length; i++) {
-                const touch = (0, utils_1.getIntersection)(ray.start, ray.end, roadBoarders[i].start, roadBoarders[i].end);
+                const touch = (0, geometry_1.getIntersection)(ray.start, ray.end, roadBoarders[i].start, roadBoarders[i].end);
+                if (touch) {
+                    touches.push(touch);
+                }
+            }
+            for (let i = 0; i < traffic.length; i++) {
+                // console.log(traffic[i])
+                const touch = (0, geometry_1.getPolyIntersect)((0, geometry_1.pairToCoordinatesArray)(ray), traffic[i].polygon.vertices);
                 if (touch) {
                     touches.push(touch);
                 }
@@ -157,7 +179,7 @@ define("sensor", ["require", "exports", "utils"], function (require, exports, ut
         castRays(genesis, angle) {
             this.rays = [];
             for (let i = 0; i < this.rayCount; i++) {
-                const rayAngle = (0, utils_1.lerp)(this.raySpread / 2, -this.raySpread / 2, i / (this.rayCount - 1)) + angle;
+                const rayAngle = (0, geometry_1.lerp)(this.raySpread / 2, -this.raySpread / 2, i / (this.rayCount - 1)) + angle;
                 const start = { x: genesis.x, y: genesis.y };
                 const end = {
                     x: genesis.x - Math.sin(rayAngle) * this.rayLen,
@@ -170,17 +192,19 @@ define("sensor", ["require", "exports", "utils"], function (require, exports, ut
         draw(ctx) {
             for (let i = 0; i < this.rays.length; i++) {
                 let end = this.rays[i].end;
+                let color = "yellow";
                 if (this.reading[i]) {
                     end = this.reading[i];
+                    color = "orange";
                 }
                 ctx.beginPath();
-                ctx.strokeStyle = "yellow";
+                ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.moveTo(this.rays[i].start.x, this.rays[i].start.y);
                 ctx.lineTo(end.x, end.y);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.strokeStyle = "black";
+                ctx.strokeStyle = "gray";
                 ctx.lineWidth = 2;
                 ctx.moveTo(end.x, end.y);
                 ctx.lineTo(this.rays[i].end.x, this.rays[i].end.y);
@@ -196,7 +220,7 @@ define("sensor", ["require", "exports", "utils"], function (require, exports, ut
     }
     exports.SensorDummy = SensorDummy;
 });
-define("car", ["require", "exports", "controller", "sensor", "utils"], function (require, exports, controller_1, sensor_1, utils_2) {
+define("car", ["require", "exports", "controller", "sensor", "geometry"], function (require, exports, controller_1, sensor_1, geometry_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Car = void 0;
@@ -232,9 +256,9 @@ define("car", ["require", "exports", "controller", "sensor", "utils"], function 
                 ctx.fillStyle = "black";
             }
             ctx.beginPath();
-            ctx.moveTo(this.polygon[0].x, this.polygon[0].y);
-            for (let i = 1; i < this.polygon.length; i++) {
-                ctx.lineTo(this.polygon[i].x, this.polygon[i].y);
+            ctx.moveTo(this.polygon.vertices[0].x, this.polygon.vertices[0].y);
+            for (let i = 1; i < this.polygon.vertices.length; i++) {
+                ctx.lineTo(this.polygon.vertices[i].x, this.polygon.vertices[i].y);
             }
             ctx.fill();
             this.sensor.draw(ctx);
@@ -248,8 +272,15 @@ define("car", ["require", "exports", "controller", "sensor", "utils"], function 
             this.sensor.update(this.coordinates, this.frontWheelAngle, roadBorders, traffic);
         }
         checkDamage(roadBorders, traffic) {
+            //Check road collision
             for (let i = 0; i < roadBorders.length; i++) {
-                if ((0, utils_2.polyIntersect)(this.polygon, (0, utils_2.pairToCoordinatesArray)(roadBorders[i]))) {
+                if ((0, geometry_2.polyIntersect)(this.polygon.vertices, (0, geometry_2.pairToCoordinatesArray)(roadBorders[i]))) {
+                    return true;
+                }
+            }
+            //Check traffic collision
+            for (let i = 0; i < traffic.length; i++) {
+                if ((0, geometry_2.polyIntersect)(this.polygon.vertices, traffic[i].polygon.vertices)) {
                     return true;
                 }
             }
@@ -310,15 +341,12 @@ define("car", ["require", "exports", "controller", "sensor", "utils"], function 
                 x: this.coordinates.x - Math.sin(Math.PI + this.frontWheelAngle + alpha) * rad,
                 y: this.coordinates.y - Math.cos(Math.PI + this.frontWheelAngle + alpha) * rad
             });
-            // console.table(points);
-            // console.table(this);
-            return vertices;
-            // const y1 = this
+            return { vertices };
         }
     }
     exports.Car = Car;
 });
-define("road", ["require", "exports", "utils"], function (require, exports, utils_3) {
+define("road", ["require", "exports", "geometry"], function (require, exports, geometry_3) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.Road = void 0;
@@ -348,7 +376,7 @@ define("road", ["require", "exports", "utils"], function (require, exports, util
             ctx.lineWidth = 5;
             ctx.strokeStyle = "white";
             for (let i = 1; i <= this.laneCount - 1; i++) {
-                const x = (0, utils_3.lerp)(this.left, this.right, i / this.laneCount);
+                const x = (0, geometry_3.lerp)(this.left, this.right, i / this.laneCount);
                 ctx.setLineDash([20, 20]);
                 ctx.beginPath();
                 ctx.moveTo(x, this.top);
@@ -380,16 +408,21 @@ define("main", ["require", "exports", "road", "car", "controller"], function (re
     ];
     function animate() {
         if (ctx) {
-            playerCar.update(road.borders, traffic);
             canvas.height = window.innerHeight;
             ctx.save();
             ctx.translate(0, -playerCar.coordinates.y + canvas.height * 0.7);
             road.draw(ctx);
-            for (let i = 0; i < traffic.length; i++) {
-                traffic[i].draw(ctx);
-                traffic[i].update(road.borders, traffic);
-            }
+            playerCar.update(road.borders, traffic);
             playerCar.draw(ctx);
+            for (let i = 0; i < traffic.length; i++) {
+                switch (true) {
+                    case traffic[i] instanceof car_1.Car: // Car
+                        let trafficCar = traffic[i];
+                        trafficCar.draw(ctx);
+                        trafficCar.update(road.borders, [playerCar]);
+                        break;
+                }
+            }
             ctx.restore();
             requestAnimationFrame(animate);
         }

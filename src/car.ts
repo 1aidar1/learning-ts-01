@@ -1,6 +1,7 @@
 import {Controller, ControlType} from "./controller";
 import {Sensor,SensorI,SensorDummy} from "./sensor";
-import {CoordinatePair, Coordinates, pairToCoordinatesArray, polyIntersect,} from "./utils";
+import {Line, Coordinates, pairToCoordinatesArray, Polygon, polyIntersect,} from "./geometry";
+import {ITraffic} from "./traffic";
 
 export class Car {
     coordinates: Coordinates;
@@ -14,7 +15,7 @@ export class Car {
     damaged: boolean;
     sensor: SensorI;
     controller: Controller;
-    polygon: Coordinates[];
+    polygon: Polygon;
 
     constructor(x: number,y: number,width: number,height:number, controllerType: ControlType, maxSpeed: number = 3,acceleration: number = 0.2) {
         this.coordinates = {x,y};
@@ -48,15 +49,15 @@ export class Car {
             ctx.fillStyle = "black";
         }
         ctx.beginPath();
-        ctx.moveTo(this.polygon[0].x, this.polygon[0].y);
-        for (let i = 1; i < this.polygon.length; i++) {
-            ctx.lineTo(this.polygon[i].x,this.polygon[i].y)
+        ctx.moveTo(this.polygon.vertices[0].x, this.polygon.vertices[0].y);
+        for (let i = 1; i < this.polygon.vertices.length; i++) {
+            ctx.lineTo(this.polygon.vertices[i].x,this.polygon.vertices[i].y);
         }
         ctx.fill();
         this.sensor.draw(ctx);
     }
 
-    update(roadBorders: CoordinatePair[],traffic: Car[]){
+    update(roadBorders: Line[], traffic: ITraffic[]){
         if (!this.damaged){
             this.drive();
             this.polygon = this.createPolygon();
@@ -65,10 +66,16 @@ export class Car {
         this.sensor.update(this.coordinates,this.frontWheelAngle,roadBorders,traffic);
     }
 
-    private checkDamage(roadBorders: CoordinatePair[],traffic: Car[]) :boolean {
+    private checkDamage(roadBorders: Line[], traffic: ITraffic[]) :boolean {
+        //Check road collision
         for (let i = 0; i < roadBorders.length; i++) {
-
-            if (polyIntersect(this.polygon, pairToCoordinatesArray(roadBorders[i]))){
+            if (polyIntersect(this.polygon.vertices, pairToCoordinatesArray(roadBorders[i]))){
+                return true;
+            }
+        }
+        //Check traffic collision
+        for (let i = 0; i < traffic.length; i++) {
+            if (polyIntersect(this.polygon.vertices, traffic[i].polygon.vertices)){
                 return true;
             }
         }
@@ -117,7 +124,7 @@ export class Car {
         this.coordinates.y-=Math.cos(this.frontWheelAngle)*this.speed;
     }
 
-    private  createPolygon() :Coordinates[] {
+    private  createPolygon() :Polygon {
         const vertices :Coordinates[] = [];
         const rad = Math.hypot(this.width, this.height)/2;
         const alpha = Math.atan2(this.width, this.height);
@@ -142,10 +149,7 @@ export class Car {
             x: this.coordinates.x-Math.sin(Math.PI+this.frontWheelAngle+alpha)*rad,
             y: this.coordinates.y-Math.cos(Math.PI+this.frontWheelAngle+alpha)*rad
         });
-        // console.table(points);
-        // console.table(this);
-        return vertices;
-        // const y1 = this
+        return {vertices};
     }
 
 }

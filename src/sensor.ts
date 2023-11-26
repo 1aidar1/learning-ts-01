@@ -1,9 +1,16 @@
-import {Car} from "./car";
-import {CoordinatePair, Coordinates, getIntersection, lerp, Polygon} from "./utils";
+import {
+    Line,
+    Coordinates,
+    getIntersection,
+    lerp,
+    pairToCoordinatesArray,
+    getPolyIntersect
+} from "./geometry";
+import {ITraffic} from "./traffic";
 
 export interface SensorI {
     draw(ctx: CanvasRenderingContext2D): void;
-    update(genesis: Coordinates, angle: number,roadBorders: CoordinatePair[], traffic: Polygon[]) :void
+    update(genesis: Coordinates, angle: number, roadBorders: Line[], traffic: ITraffic[]) :void
 
 }
 
@@ -11,7 +18,7 @@ export class Sensor implements SensorI{
     rayCount: number;
     rayLen: number;
     raySpread: number;
-    rays: CoordinatePair[];
+    rays: Line[];
     reading: (Coordinates | null | undefined)[];
 
     constructor() {
@@ -22,16 +29,16 @@ export class Sensor implements SensorI{
         this.reading = [];
     }
 
-    update(genesis: Coordinates, angle: number,roadBorders: CoordinatePair[], traffic: Polygon[]) :void{
+    update(genesis: Coordinates, angle: number, roadBorders: Line[], traffic: ITraffic[]) :void{
         this.castRays(genesis,angle);
         this.reading = [];
         for (let i = 0; i < this.rays.length; i++) {
-            const reading = this.getReading(this.rays[i],roadBorders);
+            const reading = this.getReading(this.rays[i],roadBorders, traffic);
             this.reading.push(reading);
         }
     }
 
-    private getReading(ray: CoordinatePair, roadBoarders: CoordinatePair[]) :Coordinates | null | undefined{
+    private getReading(ray: Line, roadBoarders: Line[], traffic: ITraffic[]) :Coordinates | null | undefined{
         let touches=[];
         for (let i = 0; i < roadBoarders.length; i++) {
             const touch = getIntersection(
@@ -44,6 +51,18 @@ export class Sensor implements SensorI{
                 touches.push(touch);
             }
         }
+        for (let i = 0; i < traffic.length; i++) {
+            // console.log(traffic[i])
+
+            const touch = getPolyIntersect(
+                pairToCoordinatesArray(ray),
+                traffic[i].polygon.vertices,
+            );
+            if (touch){
+                touches.push(touch);
+            }
+        }
+
         if (touches.length == 0){
             return null;
         } else {
@@ -66,7 +85,7 @@ export class Sensor implements SensorI{
                 x: genesis.x - Math.sin(rayAngle)*this.rayLen,
                 y: genesis.y - Math.cos(rayAngle)*this.rayLen
             };
-            const pair: CoordinatePair = {start: start, end: end};
+            const pair: Line = {start: start, end: end};
             this.rays.push(pair)
         }
     }
@@ -74,18 +93,20 @@ export class Sensor implements SensorI{
     draw(ctx: CanvasRenderingContext2D){
         for(let i=0;i<this.rays.length;i++){
             let end: Coordinates = this.rays[i].end;
+            let color = "yellow"
             if (this.reading[i]){
                 end = this.reading[i]!;
+                color = "orange";
             }
             ctx.beginPath();
-            ctx.strokeStyle = "yellow";
+            ctx.strokeStyle = color;
             ctx.lineWidth = 2;
             ctx.moveTo(this.rays[i].start.x,this.rays[i].start.y);
             ctx.lineTo(end.x, end.y);
             ctx.stroke();
 
             ctx.beginPath();
-            ctx.strokeStyle = "black";
+            ctx.strokeStyle = "gray";
             ctx.lineWidth = 2;
             ctx.moveTo(end.x,end.y);
             ctx.lineTo(this.rays[i].end.x, this.rays[i].end.y);
@@ -98,6 +119,5 @@ export class SensorDummy implements SensorI{
 
     constructor() {}
     draw(ctx: CanvasRenderingContext2D): void {}
-
-    update(genesis: Coordinates, angle: number, roadBorders: CoordinatePair[], traffic: Polygon[]): void {}
+    update(genesis: Coordinates, angle: number, roadBorders: Line[], traffic: ITraffic[]): void {}
 }

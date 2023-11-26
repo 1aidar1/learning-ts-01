@@ -1,5 +1,5 @@
 
-import {CoordinatePair, Coordinates, lerp} from "./utils";
+import {Line, Coordinates, lerp} from "./geometry";
 
 const roadEnd = 10000000;
 
@@ -13,7 +13,7 @@ export class Road {
     top: number;
     bottom: number;
 
-    borders: CoordinatePair[];
+    borders: Line[];
 
     constructor(width: number, x: number, laneNumber: number) {
         this.width = width;
@@ -29,8 +29,8 @@ export class Road {
         const bottomLeft: Coordinates = {x:this.left+10,y:this.bottom};
         const bottomRight: Coordinates = {x:this.right-10,y:this.bottom};
 
-        const leftPair: CoordinatePair = {start: bottomLeft, end: topLeft};
-        const rightPair: CoordinatePair = {start: bottomRight, end: topRight};
+        const leftPair: Line = {start: bottomLeft, end: topLeft};
+        const rightPair: Line = {start: bottomRight, end: topRight};
 
         this.borders = [leftPair,rightPair];
     }
