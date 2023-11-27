@@ -1,30 +1,62 @@
+import {NeuralNetwork} from "./network";
+
 export enum ControlType {
     Player,
     Dummy,
+    AI,
 }
-
-export class Controller{
+export interface IController {
     forward: boolean;
     left: boolean;
     right: boolean;
     reverse: boolean;
-    type: ControlType;
+    getControlType() :ControlType;
+    getObject(): Object;
+}
+export class AIController implements IController {
+    forward: boolean;
+    left: boolean;
+    reverse: boolean;
+    right: boolean;
+    brain: NeuralNetwork;
 
-
-    constructor(type: ControlType) {
+    constructor(brain :NeuralNetwork) {
         this.forward = false;
         this.left = false;
         this.right = false;
         this.reverse = false;
-        this.type = type;
-        switch (this.type){
-            case ControlType.Player:
-                this.addKeyboardListener();
-                break;
-            case ControlType.Dummy:
-                this.forward = true;
-                break;
-        }
+        this.brain = brain;
+    }
+
+    getControlType(): ControlType {
+        return ControlType.AI;
+    }
+
+    getObject(): AIController {
+        return this;
+    }
+
+    public feed(outputs :boolean[]){
+        this.forward=outputs[0];
+        this.left=outputs[1];
+        this.right=outputs[2];
+        this.reverse=outputs[3];
+    }
+
+}
+export class KeyboardController implements IController{
+    forward: boolean;
+    left: boolean;
+    reverse: boolean;
+    right: boolean;
+
+
+    constructor() {
+        this.forward = false;
+        this.left = false;
+        this.right = false;
+        this.reverse = false;
+        this.addKeyboardListener();
     }
 
     private addKeyboardListener(){
@@ -63,5 +95,35 @@ export class Controller{
             }
             // console.table(this)
         }
+    }
+
+    getControlType(): ControlType {
+        return ControlType.Player;
+    }
+
+    getObject(): KeyboardController {
+        return this;
+    }
+
+}
+
+export class DummyController implements IController{
+    forward: boolean;
+    left: boolean;
+    reverse: boolean;
+    right: boolean;
+
+    constructor() {
+        this.forward = true;
+        this.left = false;
+        this.right = false;
+        this.reverse = false;
+    }
+
+    getControlType(): ControlType {
+        return ControlType.Dummy;
+    }
+    getObject(): DummyController {
+        return this;
     }
 }

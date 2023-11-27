@@ -8,6 +8,10 @@ export type Coordinates = {
     y: number;
 };
 
+export type CoordinatesWOffset = Coordinates & {
+    offset: number;
+};
+
 export type Line = {
     start: Coordinates;
     end: Coordinates;
@@ -27,7 +31,7 @@ export function pairToCoordinatesArray(a: Line) :Coordinates[]{
     return out
 }
 
-export function getIntersection(A: Coordinates,B: Coordinates,C: Coordinates,D: Coordinates){
+export function getIntersection(A: Coordinates,B: Coordinates,C: Coordinates,D: Coordinates) :CoordinatesWOffset | null{
     const tTop=(D.x-C.x)*(A.y-C.y)-(D.y-C.y)*(A.x-C.x);
     const uTop=(C.y-A.y)*(A.x-B.x)-(C.x-A.x)*(A.y-B.y);
     const bottom=(D.y-C.y)*(B.x-A.x)-(D.x-C.x)*(B.y-A.y);

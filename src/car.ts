@@ -1,7 +1,8 @@
-import {Controller, ControlType} from "./controller";
-import {Sensor,SensorI,SensorDummy} from "./sensor";
-import {Line, Coordinates, pairToCoordinatesArray, Polygon, polyIntersect,} from "./geometry";
+import {AIController, ControlType, DummyController, IController, KeyboardController} from "./controller";
+import {Sensor, SensorDummy, SensorI} from "./sensor";
+import {Coordinates, Line, pairToCoordinatesArray, Polygon, polyIntersect,} from "./geometry";
 import {ITraffic} from "./traffic";
+import {NeuralNetwork} from "./network";
 
 export class Car {
     coordinates: Coordinates;
@@ -14,7 +15,7 @@ export class Car {
     frontWheelAngle: number;
     damaged: boolean;
     sensor: SensorI;
-    controller: Controller;
+    controller: IController;
     polygon: Polygon;
 
     constructor(x: number,y: number,width: number,height:number, controllerType: ControlType, maxSpeed: number = 3,acceleration: number = 0.2) {
@@ -29,17 +30,25 @@ export class Car {
         this.polygon = this.createPolygon();
         this.damaged = false;
 
-        this.controller = new Controller(controllerType);
         switch (controllerType){
             case ControlType.Dummy:
                 this.sensor = new SensorDummy()
+                this.controller = new DummyController();
                 break;
             case ControlType.Player:
                 this.sensor = new Sensor();
+                this.controller = new KeyboardController();
+                break;
+            case ControlType.AI:
+                this.sensor = new Sensor();
+                this.controller = new AIController(new NeuralNetwork(
+                    [this.sensor.rayCount, 6,4]
+                ));
                 break;
             default:
-                throw new Error(controllerType);
+                throw new Error("unknown controller: " + controllerType);
         }
+
     }
 
     draw(ctx: CanvasRenderingContext2D){
@@ -64,6 +73,19 @@ export class Car {
             this.damaged = this.checkDamage(roadBorders,traffic);
         }
         this.sensor.update(this.coordinates,this.frontWheelAngle,roadBorders,traffic);
+
+        //AI stuff
+        if (this.controller.getControlType() == ControlType.AI){
+            const offsets = this.sensor.reading.map(
+                s=>s==null?0:1-s.offset
+            );
+            const ai = this.controller.getObject() as AIController;
+            const outputs = NeuralNetwork.feedForward(offsets,ai.brain);
+            console.log(outputs)
+            const booleanArray: boolean[] = outputs.map(number => number != 0);
+            ai.feed(booleanArray);
+        }
+
     }
 
     private checkDamage(roadBorders: Line[], traffic: ITraffic[]) :boolean {

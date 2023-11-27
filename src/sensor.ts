@@ -4,11 +4,14 @@ import {
     getIntersection,
     lerp,
     pairToCoordinatesArray,
-    getPolyIntersect
+    getPolyIntersect, CoordinatesWOffset
 } from "./geometry";
 import {ITraffic} from "./traffic";
 
 export interface SensorI {
+    rayCount: number;
+    reading: (CoordinatesWOffset | null | undefined)[];
+
     draw(ctx: CanvasRenderingContext2D): void;
     update(genesis: Coordinates, angle: number, roadBorders: Line[], traffic: ITraffic[]) :void
 
@@ -19,7 +22,7 @@ export class Sensor implements SensorI{
     rayLen: number;
     raySpread: number;
     rays: Line[];
-    reading: (Coordinates | null | undefined)[];
+    reading: (CoordinatesWOffset | null | undefined)[];
 
     constructor() {
         this.rayCount=8;
@@ -38,7 +41,7 @@ export class Sensor implements SensorI{
         }
     }
 
-    private getReading(ray: Line, roadBoarders: Line[], traffic: ITraffic[]) :Coordinates | null | undefined{
+    private getReading(ray: Line, roadBoarders: Line[], traffic: ITraffic[]) :CoordinatesWOffset | null | undefined{
         let touches=[];
         for (let i = 0; i < roadBoarders.length; i++) {
             const touch = getIntersection(
@@ -116,8 +119,15 @@ export class Sensor implements SensorI{
 }
 
 export class SensorDummy implements SensorI{
+    rayCount: number;
+    reading: (CoordinatesWOffset | null | undefined)[];
 
-    constructor() {}
+    constructor() {
+        this.rayCount = 0;
+        this.reading = [];
+    }
     draw(ctx: CanvasRenderingContext2D): void {}
     update(genesis: Coordinates, angle: number, roadBorders: Line[], traffic: ITraffic[]): void {}
+
+
 }

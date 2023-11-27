@@ -8,3 +8,7 @@ body{
 #mainCanvas{
     background: lightgray;
 }
+
+#aiCanvas{
+    background: black;
+}
