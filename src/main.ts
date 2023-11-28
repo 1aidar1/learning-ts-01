@@ -1,8 +1,8 @@
-import {Road} from "./road";
 import {Car} from "./car";
 import {AIController, ControlType} from "./controller";
 import {ITraffic} from "./traffic";
 import {Level, NeuralNetwork} from "./network";
+import {Road} from "./road";
 
 
 const saveBrainBtn = document.getElementById("saveBrainBtn");
