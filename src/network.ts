@@ -4,22 +4,29 @@ import {getRGBA} from "./utils";
 export class NeuralNetwork {
     levels: Level[];
 
-    constructor(neuronCounts: number[],) {
-        this.levels = [];
+    init(neuronCounts: number[]) :NeuralNetwork{
+        const levels :Level[] = [];
         for(let i=0;i<neuronCounts.length-1;i++){
-            this.levels.push(new Level(
+            levels.push(new Level(
                 neuronCounts[i],neuronCounts[i+1]
             ));
         }
+        return new NeuralNetwork(levels);
+    }
+
+    constructor(levels: Level[] = []) {
+        this.levels = levels;
     }
 
     static feedForward(givenInputs: number[],network: NeuralNetwork) :number[]{
+        // console.log("feedForward",network);
         let outputs=Level.feedForward(
             givenInputs,network.levels[0]);
         for(let i=1;i<network.levels.length;i++){
             outputs=Level.feedForward(
                 outputs,network.levels[i]);
         }
+
         return outputs;
     }
 
@@ -40,7 +47,6 @@ export class NeuralNetwork {
     static drawLevel(ctx: CanvasRenderingContext2D, level: Level,left :number,top :number, width :number, height :number){
         const right = left + width;
         const bottom = top + height;
-
         const nodeRadius = 18;
 
         const getNodeX =(nodes :number[],index :number,left :number,right :number) =>{
@@ -79,7 +85,7 @@ export class NeuralNetwork {
             ctx.beginPath();
             ctx.lineWidth=2;
             ctx.arc(x,bottom,nodeRadius*0.8,0,Math.PI*2);
-            ctx.strokeStyle = getRGBA(level.biases[i]);
+            ctx.strokeStyle = "white";
             ctx.stroke();
         }
 
@@ -98,7 +104,7 @@ export class NeuralNetwork {
             ctx.beginPath();
             ctx.lineWidth=2;
             ctx.arc(x,top,nodeRadius*0.8,0,Math.PI*2);
-            ctx.strokeStyle = getRGBA(level.biases[i]);
+            ctx.strokeStyle = "white";
             ctx.stroke();
         }
 

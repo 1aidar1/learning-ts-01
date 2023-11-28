@@ -21,6 +21,7 @@ export class AIController implements IController {
     brain: NeuralNetwork;
 
     constructor(brain :NeuralNetwork) {
+        console.log("CREATING AI WITH BRAIN:", brain);
         this.forward = false;
         this.left = false;
         this.right = false;

@@ -41,14 +41,17 @@ export class Car {
                 break;
             case ControlType.AI:
                 this.sensor = new Sensor();
-                this.controller = new AIController(new NeuralNetwork(
-                    [this.sensor.rayCount, 6,4]
-                ));
+                const net = new NeuralNetwork().init([this.sensor.rayCount, 6,4]);
+                this.controller = new AIController(net);
                 break;
             default:
                 throw new Error("unknown controller: " + controllerType);
         }
 
+    }
+    public setController(controller :IController){
+        console.log(controller instanceof AIController);
+        this.controller = controller as AIController;
     }
 
     draw(ctx: CanvasRenderingContext2D){
@@ -81,7 +84,6 @@ export class Car {
             );
             const ai = this.controller.getObject() as AIController;
             const outputs = NeuralNetwork.feedForward(offsets,ai.brain);
-            console.log(outputs)
             const booleanArray: boolean[] = outputs.map(number => number != 0);
             ai.feed(booleanArray);
         }
